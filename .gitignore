@@ -1,0 +1,10 @@
+# Parcel
+/.cache
+/dist
+/node_modules
+
+# Rust
+/target
+
+# mothbus
+config.toml
