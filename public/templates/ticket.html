@@ -1,0 +1,9 @@
+{{#*inline "page"}}
+	<h1><a href="/tickets/{{ round_id }}">{{ round_id }}</a> - {{ ticket_no }}</h1>
+
+	{{#each ticket_messages as |ticket|}}
+		{{> ticket_entry ticket=ticket action=ticket.action}}
+	{{/each}}
+{{/inline}}
+
+{{> base}}

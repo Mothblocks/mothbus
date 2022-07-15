@@ -1,0 +1,48 @@
+<div
+	class="ticket"
+	data-ticket-color="{{ color }}"
+	id="ticket_{{ ticket.round_id }}_{{ ticket.ticket }}"
+	data-page="{{ page }}"
+>
+	<div class="action" title="{{ action }}" data-action="{{ action }}"></div>
+
+	<div class="info">
+		<div class="message">
+			{{#if link_message}}
+				<a href="/tickets/{{ ticket.round_id }}/{{ ticket.ticket }}">
+			{{/if}}
+
+			{{ ticket.message }}
+
+			{{#if link_message}}
+				</a>
+			{{/if}}
+		</div>
+
+		<div class="footer">
+			<div class="users">
+				{{#with ticket.sender as |user|}}
+					{{> user_link user=user focus=(eq user ../../ckey)}}
+				{{/with}}
+				➡
+				{{#if ticket.recipient}}
+					{{#with ticket.recipient as |user|}}
+						{{> user_link user=user focus=(eq user ../../ckey)}}
+					{{/with}}
+				{{else}}
+					Admins
+				{{/if}}
+			</div>
+
+			<div class="timestamp">
+				{{ ticket.timestamp }}
+			</div>
+		</div>
+	</div>
+
+	{{#if ticket.conversation_count}}
+		<div class="count">
+			{{ ticket.conversation_count }} 💬
+		</div>
+	{{/if}}
+</div>

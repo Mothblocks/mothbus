@@ -1,4 +1,7 @@
+mod auth;
 mod config;
+mod handlebars;
+mod hide_debug;
 mod routes;
 mod state;
 
@@ -9,6 +12,7 @@ use std::{net::SocketAddr, sync::Arc};
 
 use axum::{
     extract::Extension,
+    handler::Handler,
     response::IntoResponse,
     routing::{get, get_service},
     Router,
@@ -24,20 +28,31 @@ async fn main() -> color_eyre::Result<()> {
 
     tracing::info!("starting mothbus");
 
-    let config = Arc::new(Config::read_from_file().context("failed to read config")?);
-    let state = Arc::new(State::new().context("failed to create state")?);
+    let state = Arc::new(State::new().await.context("failed to create state")?);
 
-    let port = config.port;
+    tracing::info!(
+        "db version: {:?}",
+        state
+            .get_current_db_revision()
+            .await
+            .context("failed to get db version")?
+    );
+
+    let port = state.config.port;
 
     let app = Router::new()
         .route("/", get(routes::index))
-        // TODO: Filter html
+        .route("/tickets", get(routes::tickets::index))
+        .route("/tickets/@:ckey", get(routes::tickets::for_ckey))
+        .route("/tickets/:round/:ticket", get(routes::tickets::for_ticket))
+        .route("/mock-login/:ckey", get(routes::mock_login))
         .nest(
             "/static",
+            // TODO: Filter out html
             get_service(tower_http::services::ServeDir::new("dist"))
                 .handle_error(handle_static_error),
         )
-        .layer(Extension(config))
+        .fallback(routes::not_found.into_service())
         .layer(Extension(state))
         .layer(TraceLayer::new_for_http());
 
@@ -45,7 +60,7 @@ async fn main() -> color_eyre::Result<()> {
     tracing::debug!("listening on {}", address);
 
     axum::Server::bind(&address)
-        .serve(app.into_make_service())
+        .serve(app.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .unwrap();
 

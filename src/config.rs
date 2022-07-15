@@ -2,9 +2,13 @@ use std::io::Read;
 
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Config {
+    pub db_url: String,
     pub port: u16,
+
+    #[serde(default)]
+    pub mock_login: bool,
 }
 
 impl Config {

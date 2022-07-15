@@ -1,0 +1,16 @@
+{{#*inline "page"}}
+	<h1>tickets for {{ ckey }}</h1>
+
+	<div>
+		<span id="page_counter">page {{ page }} - </span>
+		<a href="/tickets/@{{ ckey }}">back to page 1</a>
+	</div><br />
+
+	<div id="tickets_list">
+		{{> tickets_list}}
+	</div>
+
+	<script src="../scripts/tickets_list_page.ts"></script>
+{{/inline}}
+
+{{> base}}

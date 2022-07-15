@@ -1,5 +1,13 @@
 {{#*inline "page"}}
-	i'm here too!
+	{{#if base.user}}
+		<ul>
+			{{#if (user_reads_tickets base.user) }}
+				<li><a href="/tickets">search tickets</a></li>
+			{{/if}}
+		</ul>
+	{{else}}
+		to access more, <a href="/login">login with your forum account</a>
+	{{/if}}
 {{/inline}}
 
-{{> (lookup this "parent")}}
+{{> base}}
