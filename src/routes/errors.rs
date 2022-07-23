@@ -12,6 +12,19 @@ pub struct ErrorTemplate {
     error_message: String,
 }
 
+pub async fn make_unauthorized(state: Arc<State>, message: &str) -> impl IntoResponse {
+    let mut response = state.render_template(
+        "error",
+        ErrorTemplate {
+            error_code: StatusCode::UNAUTHORIZED.as_u16(),
+            error_message: message.to_owned(),
+        },
+    );
+
+    *response.status_mut() = StatusCode::UNAUTHORIZED;
+    response
+}
+
 pub async fn make_forbidden(state: Arc<State>, message: &str) -> impl IntoResponse {
     let mut response = state.render_template(
         "error",

@@ -9,6 +9,15 @@ pub struct Config {
 
     #[serde(default)]
     pub mock_login: bool,
+
+    pub oauth2: OAuth2Options,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct OAuth2Options {
+    pub client_id: String,
+    pub client_secret: String,
+    pub redirect_uri: String,
 }
 
 impl Config {

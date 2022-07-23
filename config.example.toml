@@ -2,3 +2,8 @@ port = 2222
 db_url = "mysql://username:password@host:port/db"
 
 # mock_login = true
+
+[oauth2]
+client_id = "1234"
+client_secret = "OAUTH_CLIENT_SECRET"
+redirect_uri = "http://localhost:2222/oauth"

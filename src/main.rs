@@ -42,10 +42,12 @@ async fn main() -> color_eyre::Result<()> {
 
     let app = Router::new()
         .route("/", get(routes::index))
+        .route("/login", get(routes::login::index))
+        .route("/mock-login/:ckey", get(routes::login::mock_login))
+        .route("/oauth", get(routes::login::oauth))
         .route("/tickets", get(routes::tickets::index))
         .route("/tickets/@:ckey", get(routes::tickets::for_ckey))
         .route("/tickets/:round/:ticket", get(routes::tickets::for_ticket))
-        .route("/mock-login/:ckey", get(routes::mock_login))
         .nest(
             "/static",
             // TODO: Filter out html

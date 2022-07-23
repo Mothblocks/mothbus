@@ -8,8 +8,7 @@ pub use errors::not_found;
 mod index;
 pub use index::index;
 
-mod mock_login;
-pub use mock_login::mock_login;
+pub mod login;
 
 pub mod tickets;
 
