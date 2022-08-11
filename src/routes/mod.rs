@@ -10,6 +10,9 @@ pub use index::index;
 
 pub mod login;
 
+mod logout;
+pub use logout::logout;
+
 pub mod tickets;
 
 use crate::state::User;

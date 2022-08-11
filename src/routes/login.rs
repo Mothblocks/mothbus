@@ -21,17 +21,41 @@ pub async fn index(Extension(state): Extension<Arc<crate::State>>) -> impl IntoR
 	))
 }
 
-#[derive(Deserialize)]
-pub struct OAuthQuery {
-    code: String,
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum OAuthQuery {
+    Success {
+        code: String,
+    },
+
+    Error {
+        error: String,
+        #[serde(rename = "errordesc")]
+        error_description: String,
+    },
 }
 
-// TODO: ?error=access_denied&errordesc=The+user+did+not+authorize+the+request+or+there+was+an+error+processing+their+authorization.
+// TODO: Pass &state, and validate it here
 #[tracing::instrument]
 pub async fn oauth(
     Extension(state): Extension<Arc<crate::State>>,
-    Query(OAuthQuery { code }): Query<OAuthQuery>,
+    Query(query): Query<OAuthQuery>,
 ) -> impl IntoResponse {
+    let code = match query {
+        OAuthQuery::Success { code } => code,
+        OAuthQuery::Error {
+            error,
+            error_description,
+        } => {
+            return super::errors::make_unauthorized(
+                state,
+                &format!("{error_description} ({error})"),
+            )
+            .await
+            .into_response();
+        }
+    };
+
     let ckey = match ckey_for_auth(&code, &state.config.oauth2).await {
         Ok(Some(ckey)) => ckey,
 
@@ -180,7 +204,7 @@ async fn login_as(state: Arc<crate::State>, ckey: &str) -> impl IntoResponse {
             SET_COOKIE,
             format!("session_key={session_key}; SameSite=None; Secure; Path=/; Max-Age=31536000",),
         )]),
-        Redirect::temporary("/"),
+        Redirect::to("/"),
     )
         .into_response()
 }

@@ -19,7 +19,8 @@
 
 		<footer>
 			{{#if base.user}}
-				{{ base.user.ckey }} ({{ base.user.rank.name }})
+				{{ base.user.ckey }} ({{#if base.user.rank }}{{ base.user.rank.name }}{{ else }}Player{{/if}})<br />
+				<a href="/logout">logout</a>
 			{{else}}
 				not logged in
 			{{/if}}

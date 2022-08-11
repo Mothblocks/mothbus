@@ -1,7 +1,5 @@
 use color_eyre::eyre::Context;
-use handlebars::{
-    Handlebars, Helper, HelperResult, Output, PathAndJson, RenderContext, RenderError,
-};
+use handlebars::{Handlebars, Helper, HelperDef, PathAndJson, RenderContext, RenderError};
 use serde::Deserialize;
 
 use crate::state::User;
@@ -22,25 +20,29 @@ fn require_param<'de, T: Deserialize<'de>>(
     }
 }
 
-fn user_reads_tickets(
-    helper: &Helper,
-    _handlebars: &Handlebars,
-    _context: &handlebars::Context,
-    _render_context: &mut RenderContext,
-    out: &mut dyn Output,
-) -> HelperResult {
-    let user: User = require_param(helper, 0, "user")?;
+struct UserReadsTickets;
 
-    out.write(&user.can_read_tickets().to_string())?;
+impl HelperDef for UserReadsTickets {
+    fn call_inner<'reg: 'rc, 'rc>(
+        &self,
+        helper: &Helper<'reg, 'rc>,
+        _: &'reg Handlebars<'reg>,
+        _: &'rc handlebars::Context,
+        _: &mut RenderContext<'reg, 'rc>,
+    ) -> Result<handlebars::ScopedJson<'reg, 'rc>, RenderError> {
+        let user: User = require_param(helper, 0, "user")?;
 
-    Ok(())
+        Ok(handlebars::ScopedJson::from(serde_json::Value::Bool(
+            user.can_read_tickets(),
+        )))
+    }
 }
 
 pub fn create_handlebars() -> color_eyre::Result<Handlebars<'static>> {
     let mut handlebars = Handlebars::new();
     handlebars.set_dev_mode(true);
 
-    handlebars.register_helper("user_reads_tickets", Box::new(user_reads_tickets));
+    handlebars.register_helper("user_reads_tickets", Box::new(UserReadsTickets));
 
     for template in std::fs::read_dir("dist")? {
         let template = template?;

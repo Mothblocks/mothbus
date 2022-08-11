@@ -43,6 +43,7 @@ async fn main() -> color_eyre::Result<()> {
     let app = Router::new()
         .route("/", get(routes::index))
         .route("/login", get(routes::login::index))
+        .route("/logout", get(routes::logout))
         .route("/mock-login/:ckey", get(routes::login::mock_login))
         .route("/oauth", get(routes::login::oauth))
         .route("/tickets", get(routes::tickets::index))
