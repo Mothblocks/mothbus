@@ -8,4 +8,8 @@
 
 # mothbus
 config.toml
+config.prod.toml
 data.db*
+
+# Me specific scripts
+push.sh

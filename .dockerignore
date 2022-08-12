@@ -1,0 +1,10 @@
+# Parcel
+/.parcel-cache
+/dist
+/node_modules
+
+# Rust
+/target
+
+# Mothbus
+data.db*

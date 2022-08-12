@@ -38,6 +38,7 @@ async fn main() -> color_eyre::Result<()> {
             .context("failed to get db version")?
     );
 
+    let address = state.config.address;
     let port = state.config.port;
 
     let app = Router::new()
@@ -59,7 +60,7 @@ async fn main() -> color_eyre::Result<()> {
         .layer(Extension(state))
         .layer(TraceLayer::new_for_http());
 
-    let address = SocketAddr::from(([127, 0, 0, 1], port));
+    let address = SocketAddr::from((address, port));
     tracing::debug!("listening on {}", address);
 
     axum::Server::bind(&address)

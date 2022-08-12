@@ -1,9 +1,10 @@
-use std::io::Read;
+use std::{io::Read, net::IpAddr};
 
 use serde::Deserialize;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Config {
+    pub address: IpAddr,
     pub db_url: String,
     pub port: u16,
 
