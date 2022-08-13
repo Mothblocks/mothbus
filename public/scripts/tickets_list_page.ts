@@ -49,7 +49,8 @@ window.addEventListener("scroll", () => {
       .then(async (response) => {
         if (response.ok) {
           tickets_list.innerHTML += await response.text();
-          window.history.pushState(
+
+          window.history.replaceState(
             "",
             "",
             `${location.pathname}?page=${page}${location.hash}`
