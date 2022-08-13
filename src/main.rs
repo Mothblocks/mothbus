@@ -52,6 +52,7 @@ async fn main() -> color_eyre::Result<()> {
         .route("/tickets/@:ckey", get(routes::tickets::for_ckey))
         .route("/tickets/server/:server", get(routes::tickets::for_server))
         .route("/tickets/:round/:ticket", get(routes::tickets::for_ticket))
+        .route("/tickets/:round", get(routes::tickets::for_round))
         .nest(
             "/static",
             // TODO: Filter out html

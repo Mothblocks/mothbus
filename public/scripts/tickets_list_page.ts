@@ -38,6 +38,12 @@ tickets_list.addEventListener("click", (event) => {
   location.assign(target.href);
 });
 
+const backToPage1Link = document.getElementById(
+  "back_to_page_1_link"
+) as HTMLAnchorElement;
+
+backToPage1Link.href = location.pathname;
+
 window.addEventListener("scroll", () => {
   const { scrollHeight, clientHeight, scrollTop } = document.documentElement;
 

@@ -106,7 +106,7 @@ const TICKETS_PER_PAGE: u32 = 20;
 #[derive(Serialize)]
 struct TicketsListTemplate {
     base: TemplateBase,
-    ckey: String,
+    who: String,
     page: u32,
     tickets: Vec<WithColor<Ticket>>,
 }
@@ -200,7 +200,7 @@ pub async fn for_ckey(
                 user: Some(user),
             },
 
-            ckey,
+            who: ckey,
             page,
             tickets,
         },
@@ -288,7 +288,86 @@ pub async fn for_server(
                 title: format!("tickets - {server_name}").into(),
                 user: Some(user),
             },
-            ckey: server_name,
+            who: server_name,
+            page,
+            tickets,
+        },
+    )
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TicketRoundParams {
+    page: Option<u32>,
+}
+
+#[tracing::instrument]
+pub async fn for_round(
+    Path(round_id): Path<u64>,
+    Query(params): Query<TicketRoundParams>,
+    Extension(state): Extension<Arc<State>>,
+    AuthenticatedUser(user): AuthenticatedUser,
+) -> impl IntoResponse {
+    if !user.can_read_tickets() {
+        return make_forbidden(
+            state,
+            "You do not have permission to read a round's tickets.",
+        )
+        .await
+        .into_response();
+    }
+
+    let page = params.page.unwrap_or(1);
+
+    let tickets = match sqlx::query_as::<_, Ticket>(&format!(
+        r#"
+            {SELECT_TICKETS_TEMPLATE}
+            WHERE
+                first_tickets.round_id = ?
+                AND first_tickets.action = 'Ticket Opened'
+            GROUP BY first_tickets.id
+            ORDER BY id DESC
+            LIMIT ? OFFSET ?
+        "#,
+    ))
+    .bind(round_id)
+    .bind(TICKETS_PER_PAGE)
+    .bind(page.saturating_sub(1) * TICKETS_PER_PAGE)
+    .fetch_all(&state.mysql_pool)
+    .await
+    .context("failed to fetch tickets for round")
+    {
+        Ok(tickets) => tickets
+            .into_iter()
+            .map(|ticket| WithColor {
+                color: if ticket.recipient.is_some() {
+                    "admin1".into()
+                } else {
+                    "player-ahelping".into()
+                },
+
+                data: ticket,
+            })
+            .collect(),
+
+        Err(error) => {
+            return super::errors::make_internal_server_error(state, error)
+                .await
+                .into_response();
+        }
+    };
+
+    state.render_template(
+        if params.page.is_some() {
+            "tickets_list"
+        } else {
+            "tickets_list_page"
+        },
+        TicketsListTemplate {
+            base: TemplateBase {
+                title: format!("tickets - round {round_id}").into(),
+                user: Some(user),
+            },
+            who: format!("round {round_id}"),
             page,
             tickets,
         },
