@@ -12,7 +12,7 @@
 				<a href="/tickets/{{ ticket.round_id }}/{{ ticket.ticket }}">
 			{{/if}}
 
-			{{ ticket.message }}
+			{{ (remove_html_tags ticket.message) }}
 
 			{{#if link_message}}
 				</a>

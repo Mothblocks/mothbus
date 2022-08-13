@@ -20,6 +20,41 @@ fn require_param<'de, T: Deserialize<'de>>(
     }
 }
 
+struct MothbusVersion;
+
+impl HelperDef for MothbusVersion {
+    fn call_inner<'reg: 'rc, 'rc>(
+        &self,
+        _: &Helper<'reg, 'rc>,
+        _: &'reg Handlebars<'reg>,
+        _: &'rc handlebars::Context,
+        _: &mut RenderContext<'reg, 'rc>,
+    ) -> Result<handlebars::ScopedJson<'reg, 'rc>, RenderError> {
+        Ok(handlebars::ScopedJson::from(serde_json::Value::String(
+            env!("CARGO_PKG_VERSION").to_string(),
+        )))
+    }
+}
+
+struct RemoveHtmlTags;
+
+impl HelperDef for RemoveHtmlTags {
+    fn call_inner<'reg: 'rc, 'rc>(
+        &self,
+        helper: &Helper<'reg, 'rc>,
+        _: &'reg Handlebars<'reg>,
+        _: &'rc handlebars::Context,
+        _: &mut RenderContext<'reg, 'rc>,
+    ) -> Result<handlebars::ScopedJson<'reg, 'rc>, RenderError> {
+        let text: String = require_param(helper, 0, "text")?;
+        let fragment = scraper::Html::parse_fragment(&text);
+
+        Ok(handlebars::ScopedJson::from(serde_json::Value::String(
+            fragment.root_element().text().collect::<String>(),
+        )))
+    }
+}
+
 struct UserReadsTickets;
 
 impl HelperDef for UserReadsTickets {
@@ -38,29 +73,13 @@ impl HelperDef for UserReadsTickets {
     }
 }
 
-struct MothbusVersion;
-
-impl HelperDef for MothbusVersion {
-    fn call_inner<'reg: 'rc, 'rc>(
-        &self,
-        _: &Helper<'reg, 'rc>,
-        _: &'reg Handlebars<'reg>,
-        _: &'rc handlebars::Context,
-        _: &mut RenderContext<'reg, 'rc>,
-    ) -> Result<handlebars::ScopedJson<'reg, 'rc>, RenderError> {
-        Ok(handlebars::ScopedJson::from(serde_json::Value::String(
-            env!("CARGO_PKG_VERSION").to_string(),
-        )))
-    }
-}
-
 pub fn create_handlebars() -> color_eyre::Result<Handlebars<'static>> {
     let mut handlebars = Handlebars::new();
     handlebars.set_dev_mode(true);
 
-    handlebars.register_helper("user_reads_tickets", Box::new(UserReadsTickets));
-
     handlebars.register_helper("mothbus_version", Box::new(MothbusVersion));
+    handlebars.register_helper("remove_html_tags", Box::new(RemoveHtmlTags));
+    handlebars.register_helper("user_reads_tickets", Box::new(UserReadsTickets));
 
     for template in std::fs::read_dir("dist")? {
         let template = template?;
