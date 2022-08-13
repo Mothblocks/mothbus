@@ -325,7 +325,7 @@ pub async fn for_round(
                 first_tickets.round_id = ?
                 AND first_tickets.action = 'Ticket Opened'
             GROUP BY first_tickets.id
-            ORDER BY id DESC
+            ORDER BY id ASC
             LIMIT ? OFFSET ?
         "#,
     ))
