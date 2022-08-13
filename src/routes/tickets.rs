@@ -6,19 +6,47 @@ use axum::{
     Extension,
 };
 use color_eyre::eyre::Context;
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer};
 
-use crate::{auth::AuthenticatedUser, state::User, State};
+use crate::{auth::AuthenticatedUser, servers::Server, state::User, State};
 
 use super::{
     errors::{make_forbidden, make_not_found},
     TemplateBase,
 };
 
+const SELECT_TICKETS_TEMPLATE: &str = r#"
+    SELECT
+        first_tickets.*,
+        (SELECT
+                COUNT(*)
+            FROM
+                ticket
+            WHERE
+                ticket.round_id = first_tickets.round_id
+                    AND ticket.ticket = first_tickets.ticket) AS conversation_count,
+        (SELECT
+                action
+            FROM
+                ticket
+            WHERE
+                ticket.round_id = first_tickets.round_id
+                    AND ticket.ticket = first_tickets.ticket
+            ORDER BY id DESC
+            LIMIT 1) AS final_response
+    FROM
+        ticket
+            INNER JOIN
+        ticket AS first_tickets ON first_tickets.round_id = ticket.round_id
+            AND first_tickets.ticket = ticket.ticket
+            AND first_tickets.action = 'Ticket Opened'
+"#;
+
 #[derive(Serialize)]
 struct TicketsTemplate {
     base: TemplateBase,
     can_read_tickets: bool,
+    servers: &'static [Server; 5],
 }
 
 #[derive(Debug, Serialize, sqlx::FromRow)]
@@ -63,6 +91,7 @@ pub async fn index(
         "tickets",
         TicketsTemplate {
             can_read_tickets: user.can_read_tickets(),
+            servers: &crate::servers::SERVERS,
 
             base: TemplateBase {
                 title: "tickets".into(),
@@ -113,40 +142,17 @@ pub async fn for_ckey(
         _ => 1,
     };
 
-    let tickets = match sqlx::query_as::<_, Ticket>(
+    let tickets = match sqlx::query_as::<_, Ticket>(&format!(
         r#"
-            SELECT
-                first_tickets.*,
-                (SELECT
-                        COUNT(*)
-                    FROM
-                        ticket
-                    WHERE
-                        ticket.round_id = first_tickets.round_id
-                            AND ticket.ticket = first_tickets.ticket) AS conversation_count,
-                (SELECT
-                        action
-                    FROM
-                        ticket
-                    WHERE
-                        ticket.round_id = first_tickets.round_id
-                            AND ticket.ticket = first_tickets.ticket
-                    ORDER BY id DESC
-                    LIMIT 1) AS final_response
-            FROM
-                ticket
-                    INNER JOIN
-                ticket AS first_tickets ON first_tickets.round_id = ticket.round_id
-                    AND first_tickets.ticket = ticket.ticket
-                    AND first_tickets.action = 'Ticket Opened'
+            {SELECT_TICKETS_TEMPLATE}
             WHERE
                 ticket.recipient = ?
                     OR ticket.sender = ?
             GROUP BY ticket.round_id , ticket.ticket
             ORDER BY id DESC
             LIMIT ? OFFSET ?
-        "#,
-    )
+        "#
+    ))
     .bind(&ckey)
     .bind(&ckey)
     .bind(TICKETS_PER_PAGE)
@@ -195,6 +201,94 @@ pub async fn for_ckey(
             },
 
             ckey,
+            page,
+            tickets,
+        },
+    )
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TicketServerParams {
+    page: Option<u32>,
+}
+
+#[tracing::instrument]
+pub async fn for_server(
+    Path(server_name): Path<String>,
+    Query(params): Query<TicketServerParams>,
+    Extension(state): Extension<Arc<State>>,
+    AuthenticatedUser(user): AuthenticatedUser,
+) -> impl IntoResponse {
+    if !user.can_read_tickets() {
+        return make_forbidden(
+            state,
+            "You do not have permission to read a server's tickets",
+        )
+        .await
+        .into_response();
+    }
+
+    let server = match crate::servers::server_by_name(server_name.as_str()) {
+        Some(server) => server,
+        None => {
+            return make_not_found(state, &format!("\"{server_name}\" is not a valid server"))
+                .await
+                .into_response();
+        }
+    };
+
+    let page = params.page.unwrap_or(1);
+
+    let tickets = match sqlx::query_as::<_, Ticket>(&format!(
+        r#"
+            {SELECT_TICKETS_TEMPLATE}
+            WHERE
+                first_tickets.server_port = ?
+                AND first_tickets.action = 'Ticket Opened'
+            GROUP BY id
+            ORDER BY id DESC
+            LIMIT ? OFFSET ?
+        "#,
+    ))
+    .bind(server.port)
+    .bind(TICKETS_PER_PAGE)
+    .bind(page.saturating_sub(1) * TICKETS_PER_PAGE)
+    .fetch_all(&state.mysql_pool)
+    .await
+    .context("failed to fetch tickets for server")
+    {
+        Ok(tickets) => tickets
+            .into_iter()
+            .map(|ticket| WithColor {
+                color: if ticket.recipient.is_some() {
+                    "admin1".into()
+                } else {
+                    "player-ahelping".into()
+                },
+
+                data: ticket,
+            })
+            .collect(),
+
+        Err(error) => {
+            return super::errors::make_internal_server_error(state, error)
+                .await
+                .into_response();
+        }
+    };
+
+    state.render_template(
+        if params.page.is_some() {
+            "tickets_list"
+        } else {
+            "tickets_list_page"
+        },
+        TicketsListTemplate {
+            base: TemplateBase {
+                title: format!("tickets - {server_name}").into(),
+                user: Some(user),
+            },
+            ckey: server_name,
             page,
             tickets,
         },

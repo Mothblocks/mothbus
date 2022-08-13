@@ -4,6 +4,16 @@
 	<ul>
 		<li><a href="/tickets/@{{ base.user.ckey }}">my tickets</a></li>
 	</ul>
+
+	{{#if can_read_tickets }}
+		<h3>servers</h3>
+
+		<ul>
+			{{#each servers as |server|}}
+				<li><a href="/tickets/server/{{ server.name }}">{{ server.name }}</a></li>
+			{{/each}}
+		</ul>
+	{{/if}}
 {{/inline}}
 
 {{> base}}

@@ -3,6 +3,7 @@ mod config;
 mod handlebars;
 mod hide_debug;
 mod routes;
+mod servers;
 mod state;
 
 pub use config::Config;
@@ -49,6 +50,7 @@ async fn main() -> color_eyre::Result<()> {
         .route("/oauth", get(routes::login::oauth))
         .route("/tickets", get(routes::tickets::index))
         .route("/tickets/@:ckey", get(routes::tickets::for_ckey))
+        .route("/tickets/server/:server", get(routes::tickets::for_server))
         .route("/tickets/:round/:ticket", get(routes::tickets::for_ticket))
         .nest(
             "/static",
