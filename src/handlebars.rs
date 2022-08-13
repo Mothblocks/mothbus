@@ -38,11 +38,29 @@ impl HelperDef for UserReadsTickets {
     }
 }
 
+struct MothbusVersion;
+
+impl HelperDef for MothbusVersion {
+    fn call_inner<'reg: 'rc, 'rc>(
+        &self,
+        _: &Helper<'reg, 'rc>,
+        _: &'reg Handlebars<'reg>,
+        _: &'rc handlebars::Context,
+        _: &mut RenderContext<'reg, 'rc>,
+    ) -> Result<handlebars::ScopedJson<'reg, 'rc>, RenderError> {
+        Ok(handlebars::ScopedJson::from(serde_json::Value::String(
+            env!("CARGO_PKG_VERSION").to_string(),
+        )))
+    }
+}
+
 pub fn create_handlebars() -> color_eyre::Result<Handlebars<'static>> {
     let mut handlebars = Handlebars::new();
     handlebars.set_dev_mode(true);
 
     handlebars.register_helper("user_reads_tickets", Box::new(UserReadsTickets));
+
+    handlebars.register_helper("mothbus_version", Box::new(MothbusVersion));
 
     for template in std::fs::read_dir("dist")? {
         let template = template?;
