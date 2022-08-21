@@ -48,6 +48,7 @@ async fn main() -> color_eyre::Result<()> {
         .route("/logout", get(routes::logout))
         .route("/mock-login/:ckey", get(routes::login::mock_login))
         .route("/oauth", get(routes::login::oauth))
+        .route("/@:ckey", get(routes::user::for_ckey))
         .route("/tickets", get(routes::tickets::index))
         .route("/tickets/@:ckey", get(routes::tickets::for_ckey))
         .route("/tickets/server/:server", get(routes::tickets::for_server))

@@ -15,6 +15,8 @@ pub use logout::logout;
 
 pub mod tickets;
 
+pub mod user;
+
 use crate::state::User;
 
 #[derive(Serialize)]
