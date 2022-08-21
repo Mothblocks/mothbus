@@ -6,6 +6,7 @@ use axum::{
     Extension,
 };
 use color_eyre::eyre::Context;
+use http::StatusCode;
 use serde::{Deserialize, Serialize, Serializer};
 
 use crate::{auth::AuthenticatedUser, servers::Server, state::User, State};
@@ -47,6 +48,33 @@ struct TicketsTemplate {
     base: TemplateBase,
     can_read_tickets: bool,
     servers: &'static [Server; 5],
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TicketsParams {
+    page: Option<u32>,
+    embed: Option<String>,
+}
+
+fn render_tickets(
+    state: Arc<State>,
+    params: TicketsParams,
+    tickets_list_template: TicketsListTemplate,
+) -> impl IntoResponse {
+    if tickets_list_template.tickets.is_empty() {
+        return (StatusCode::NO_CONTENT).into_response();
+    }
+
+    state
+        .render_template(
+            if params.embed.is_some() {
+                "tickets_list"
+            } else {
+                "tickets_list_page"
+            },
+            tickets_list_template,
+        )
+        .into_response()
 }
 
 #[derive(Debug, Serialize, sqlx::FromRow)]
@@ -121,7 +149,7 @@ struct WithColor<T: Serialize> {
 #[tracing::instrument]
 pub async fn for_ckey(
     Path(ckey): Path<String>,
-    Query(params): Query<HashMap<String, String>>,
+    Query(params): Query<TicketsParams>,
     Extension(state): Extension<Arc<State>>,
     AuthenticatedUser(user): AuthenticatedUser,
 ) -> impl IntoResponse {
@@ -137,10 +165,7 @@ pub async fn for_ckey(
         .into_response();
     }
 
-    let page = match params.get("page").map(|page| page.parse::<u32>()) {
-        Some(Ok(page)) => page,
-        _ => 1,
-    };
+    let page = params.page.unwrap_or(1);
 
     let tickets = match sqlx::query_as::<_, Ticket>(&format!(
         r#"
@@ -188,12 +213,9 @@ pub async fn for_ckey(
         }
     };
 
-    state.render_template(
-        if params.get("embed").is_some() {
-            "tickets_list"
-        } else {
-            "tickets_list_page"
-        },
+    render_tickets(
+        state,
+        params,
         TicketsListTemplate {
             base: TemplateBase {
                 title: format!("tickets - {ckey}").into(),
@@ -205,18 +227,13 @@ pub async fn for_ckey(
             tickets,
         },
     )
-}
-
-#[derive(Debug, Deserialize)]
-pub struct TicketServerParams {
-    page: Option<u32>,
-    embed: Option<String>,
+    .into_response()
 }
 
 #[tracing::instrument]
 pub async fn for_server(
     Path(server_name): Path<String>,
-    Query(params): Query<TicketServerParams>,
+    Query(params): Query<TicketsParams>,
     Extension(state): Extension<Arc<State>>,
     AuthenticatedUser(user): AuthenticatedUser,
 ) -> impl IntoResponse {
@@ -278,12 +295,9 @@ pub async fn for_server(
         }
     };
 
-    state.render_template(
-        if params.embed.is_some() {
-            "tickets_list"
-        } else {
-            "tickets_list_page"
-        },
+    render_tickets(
+        state,
+        params,
         TicketsListTemplate {
             base: TemplateBase {
                 title: format!("tickets - {server_name}").into(),
@@ -294,18 +308,13 @@ pub async fn for_server(
             tickets,
         },
     )
-}
-
-#[derive(Debug, Deserialize)]
-pub struct TicketRoundParams {
-    page: Option<u32>,
-    embed: Option<String>,
+    .into_response()
 }
 
 #[tracing::instrument]
 pub async fn for_round(
     Path(round_id): Path<u64>,
-    Query(params): Query<TicketRoundParams>,
+    Query(params): Query<TicketsParams>,
     Extension(state): Extension<Arc<State>>,
     AuthenticatedUser(user): AuthenticatedUser,
 ) -> impl IntoResponse {
@@ -358,12 +367,9 @@ pub async fn for_round(
         }
     };
 
-    state.render_template(
-        if params.embed.is_some() {
-            "tickets_list"
-        } else {
-            "tickets_list_page"
-        },
+    render_tickets(
+        state,
+        params,
         TicketsListTemplate {
             base: TemplateBase {
                 title: format!("tickets - round {round_id}").into(),
@@ -374,6 +380,7 @@ pub async fn for_round(
             tickets,
         },
     )
+    .into_response()
 }
 
 #[derive(Serialize)]
