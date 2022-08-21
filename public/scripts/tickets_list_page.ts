@@ -44,30 +44,35 @@ const backToPage1Link = document.getElementById(
 
 backToPage1Link.href = location.pathname;
 
+// Don't rename without changing in tickets_list_page.html
+const nextPage = () => {
+  retrieving = true;
+  page += 1;
+
+  fetch(`${location.origin}${location.pathname}?page=${page}&embed`)
+    .then(async (response) => {
+      if (response.ok) {
+        tickets_list.innerHTML += await response.text();
+
+        window.history.replaceState(
+          "",
+          "",
+          `${location.pathname}?page=${page}${location.hash}`
+        );
+        updatePageText();
+      } else {
+        alert("Couldn't get new tickets!");
+      }
+    })
+    .finally(() => {
+      retrieving = false;
+    });
+};
+
 window.addEventListener("scroll", () => {
   const { scrollHeight, clientHeight, scrollTop } = document.documentElement;
 
   if (scrollTop + clientHeight >= scrollHeight - 100 && !retrieving) {
-    retrieving = true;
-    page += 1;
-
-    fetch(`${location.origin}${location.pathname}?page=${page}&embed`)
-      .then(async (response) => {
-        if (response.ok) {
-          tickets_list.innerHTML += await response.text();
-
-          window.history.replaceState(
-            "",
-            "",
-            `${location.pathname}?page=${page}${location.hash}`
-          );
-          updatePageText();
-        } else {
-          alert("Couldn't get new tickets!");
-        }
-      })
-      .finally(() => {
-        retrieving = false;
-      });
+    nextPage();
   }
 });

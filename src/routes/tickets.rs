@@ -210,6 +210,7 @@ pub async fn for_ckey(
 #[derive(Debug, Deserialize)]
 pub struct TicketServerParams {
     page: Option<u32>,
+    embed: Option<String>,
 }
 
 #[tracing::instrument]
@@ -278,7 +279,7 @@ pub async fn for_server(
     };
 
     state.render_template(
-        if params.page.is_some() {
+        if params.embed.is_some() {
             "tickets_list"
         } else {
             "tickets_list_page"
@@ -298,6 +299,7 @@ pub async fn for_server(
 #[derive(Debug, Deserialize)]
 pub struct TicketRoundParams {
     page: Option<u32>,
+    embed: Option<String>,
 }
 
 #[tracing::instrument]
@@ -357,7 +359,7 @@ pub async fn for_round(
     };
 
     state.render_template(
-        if params.page.is_some() {
+        if params.embed.is_some() {
             "tickets_list"
         } else {
             "tickets_list_page"
