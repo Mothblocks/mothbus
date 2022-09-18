@@ -10,6 +10,7 @@
 config.toml
 config.prod.toml
 data.db*
+jwt_secret_key.txt
 
 # Me specific scripts
 push.sh

@@ -10,7 +10,7 @@ use axum::{
 };
 use http::StatusCode;
 
-use crate::{state::Session, State};
+use crate::{session::Session, State};
 
 async fn get_session<B: Send>(
     request: &mut RequestParts<B>,
@@ -23,12 +23,12 @@ async fn get_session<B: Send>(
         .await
         .unwrap();
 
-    let session_key = match cookie_jar.get("session_key") {
-        Some(session_key) => session_key.value(),
+    let session_jwt = match cookie_jar.get("session_jwt") {
+        Some(session_jwt) => session_jwt.value(),
         None => return Ok(None),
     };
 
-    state.session(session_key).await
+    state.session(session_jwt).await
 }
 
 async fn get_user<B: Send>(request: &mut RequestParts<B>) -> color_eyre::Result<Option<User>> {

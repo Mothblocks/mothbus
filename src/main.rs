@@ -4,6 +4,7 @@ mod handlebars;
 mod hide_debug;
 mod routes;
 mod servers;
+mod session;
 mod state;
 
 pub use config::Config;
@@ -37,6 +38,12 @@ async fn main() -> color_eyre::Result<()> {
             .get_current_db_revision()
             .await
             .context("failed to get db version")?
+    );
+
+    // Generating session token can panic, so just get it early
+    tracing::info!(
+        "session token length: {}",
+        session::get_secret_token().len()
     );
 
     let address = state.config.address;

@@ -6,16 +6,20 @@ use handlebars::Handlebars;
 use http::StatusCode;
 use moka::future::Cache;
 use serde::{Deserialize, Serialize};
-use sqlx::{mysql::MySqlPoolOptions, sqlite::SqlitePoolOptions, Row};
+use sqlx::{mysql::MySqlPoolOptions, Row};
 
-use crate::{handlebars::create_handlebars, hide_debug::HideDebug, Config};
+use crate::{
+    handlebars::create_handlebars,
+    hide_debug::HideDebug,
+    session::{self, Session},
+    Config,
+};
 
 #[derive(Clone, Debug)]
 pub struct State {
     pub config: HideDebug<Config>,
     pub handlebars: HideDebug<Handlebars<'static>>,
     pub mysql_pool: sqlx::MySqlPool,
-    pub sqlite_pool: sqlx::SqlitePool,
 
     session_cache: Cache<String, Session>,
     user_cache: Cache<String, User>,
@@ -49,24 +53,10 @@ impl AdminRank {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct Session {
-    pub ckey: String,
-}
-
 async fn create_mysql_pool(config: &Config) -> color_eyre::Result<sqlx::MySqlPool> {
     let db_pool = MySqlPoolOptions::new()
         .max_connections(5)
         .connect(&config.db_url)
-        .await?;
-
-    Ok(db_pool)
-}
-
-async fn create_sqlite_pool() -> color_eyre::Result<sqlx::SqlitePool> {
-    let db_pool = SqlitePoolOptions::new()
-        .max_connections(5)
-        .connect("data.db")
         .await?;
 
     Ok(db_pool)
@@ -89,7 +79,6 @@ impl State {
         Ok(Self {
             handlebars: HideDebug(create_handlebars()?),
             mysql_pool: create_mysql_pool(&config).await?,
-            sqlite_pool: create_sqlite_pool().await?,
 
             session_cache: small_cache(),
             user_cache: small_cache(),
@@ -99,12 +88,6 @@ impl State {
     }
 
     pub fn render_template<T: Serialize>(&self, path: &'static str, data: T) -> Response {
-        // #[derive(Serialize)]
-        // struct Template<T> {
-        //     #[serde(flatten)]
-        //     data: T,
-        // }
-
         match self.handlebars.render(path, &data) {
             Ok(response) => Html(response).into_response(),
             Err(error) => {
@@ -133,33 +116,23 @@ impl State {
     #[tracing::instrument]
     pub async fn session(
         self: Arc<Self>,
-        session_key: &str,
+        session_jwt: &str,
     ) -> color_eyre::Result<Option<Session>> {
-        if let Some(session) = self.session_cache.get(&session_key.to_string()) {
+        if let Some(session) = self.session_cache.get(&session_jwt.to_string()) {
             return Ok(Some(session));
         }
 
-        let session = match sqlx::query("SELECT ckey FROM sessions WHERE session_key = ?")
-            .bind(session_key)
-            .fetch_optional(&self.sqlite_pool)
-            .await
-        {
-            Ok(Some(session)) => session,
-            Ok(None) => {
-                tracing::debug!("couldn't find a session from {session_key}");
-                return Ok(None);
-            }
-            Err(error) => return Err(error.into()),
+        let session = match session::session_from_token(session_jwt) {
+            Some(session) => session,
+            None => return Ok(None),
         };
 
-        let ckey = session.get("ckey");
-
         self.session_cache
-            .insert(session_key.to_string(), Session { ckey })
+            .insert(session_jwt.to_string(), session)
             .await;
 
         Ok(Some(
-            self.session_cache.get(&session_key.to_string()).unwrap(),
+            self.session_cache.get(&session_jwt.to_string()).unwrap(),
         ))
     }
 
@@ -217,28 +190,6 @@ impl State {
     /// Creates the session, and returns the session key
     #[tracing::instrument]
     pub async fn create_session_for(self: Arc<Self>, ckey: &str) -> color_eyre::Result<String> {
-        match sqlx::query("SELECT session_key FROM sessions WHERE ckey = ?")
-            .bind(ckey)
-            .fetch_optional(&self.sqlite_pool)
-            .await
-        {
-            Ok(Some(row)) => {
-                return Ok(row.get("session_key"));
-            }
-            Ok(None) => {}
-            Err(error) => return Err(error.into()),
-        };
-
-        // rand::random() uses thread_rng(), which is cryptographically secure.
-        let session_key = format!("{:x}", rand::random::<u128>());
-
-        sqlx::query("INSERT INTO sessions (ckey, session_key) VALUES (?, ?)")
-            .bind(&ckey)
-            .bind(&session_key)
-            .execute(&self.sqlite_pool)
-            .await
-            .context("error inserting session")?;
-
-        Ok(session_key)
+        session::new_session_token(ckey)
     }
 }

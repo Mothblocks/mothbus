@@ -192,8 +192,8 @@ pub async fn mock_login(
 }
 
 async fn login_as(state: Arc<crate::State>, ckey: &str) -> impl IntoResponse {
-    let session_key = match state.create_session_for(ckey).await {
-        Ok(session_key) => session_key,
+    let session_jwt = match state.create_session_for(ckey).await {
+        Ok(session_jwt) => session_jwt,
         Err(error) => {
             return (StatusCode::INTERNAL_SERVER_ERROR, error.to_string()).into_response();
         }
@@ -202,7 +202,7 @@ async fn login_as(state: Arc<crate::State>, ckey: &str) -> impl IntoResponse {
     (
         AppendHeaders([(
             SET_COOKIE,
-            format!("session_key={session_key}; SameSite=None; Secure; Path=/; Max-Age=31536000",),
+            format!("session_jwt={session_jwt}; SameSite=None; Secure; Path=/; Max-Age=31536000",),
         )]),
         Redirect::to("/"),
     )
