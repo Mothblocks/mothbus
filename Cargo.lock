@@ -1362,7 +1362,9 @@ dependencies = [
  "sqlx",
  "tokio",
  "toml",
+ "tower",
  "tower-http",
+ "tower-layer",
  "tracing",
  "tracing-subscriber",
 ]

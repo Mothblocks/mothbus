@@ -1,4 +1,5 @@
 mod auth;
+mod block_templates;
 mod config;
 mod handlebars;
 mod hide_debug;
@@ -8,6 +9,7 @@ mod session;
 mod state;
 
 pub use config::Config;
+use http::StatusCode;
 pub use state::State;
 
 use std::{net::SocketAddr, sync::Arc};
@@ -20,7 +22,6 @@ use axum::{
     Router,
 };
 use color_eyre::eyre::Context;
-use http::StatusCode;
 use tower_http::trace::TraceLayer;
 
 #[tokio::main]
@@ -61,10 +62,13 @@ async fn main() -> color_eyre::Result<()> {
         .route("/tickets/server/:server", get(routes::tickets::for_server))
         .route("/tickets/:round/:ticket", get(routes::tickets::for_ticket))
         .route("/tickets/:round", get(routes::tickets::for_round))
+        .nest("/evasion", ban_evasion_service())
         .nest(
             "/static",
-            // TODO: Filter out html
             get_service(tower_http::services::ServeDir::new("dist"))
+                .route_layer(tower_layer::layer_fn(
+                    block_templates::BlockTemplatesService::new,
+                ))
                 .handle_error(handle_static_error),
         )
         .fallback(routes::not_found.into_service())
@@ -88,5 +92,24 @@ async fn handle_static_error(error: std::io::Error) -> impl IntoResponse {
     (
         StatusCode::INTERNAL_SERVER_ERROR,
         "failed to serve a static file, this is a bug",
+    )
+}
+
+#[cfg(feature = "secret-ban-evasion")]
+fn ban_evasion_service() -> axum::routing::Router {
+    routes::evasion::service()
+}
+
+#[cfg(not(feature = "secret-ban-evasion"))]
+fn ban_evasion_service() -> axum::routing::Router {
+    Router::new().route(
+        "/",
+        get(|| async {
+            (
+                StatusCode::FORBIDDEN,
+                "secret-ban-evasion feature is not enabled",
+            )
+                .into_response()
+        }),
     )
 }

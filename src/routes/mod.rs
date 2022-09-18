@@ -17,6 +17,9 @@ pub mod tickets;
 
 pub mod user;
 
+#[cfg(feature = "secret-ban-evasion")]
+pub mod evasion;
+
 use crate::state::User;
 
 #[derive(Serialize)]

@@ -12,5 +12,9 @@ config.prod.toml
 data.db*
 jwt_secret_key.txt
 
+# mothbus: secret-ban-evasion
+src/routes/evasion.rs
+public/templates/evasion_*
+
 # Me specific scripts
 push.sh

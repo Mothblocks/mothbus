@@ -12,6 +12,9 @@ pub struct Config {
     pub mock_login: bool,
 
     pub oauth2: OAuth2Options,
+
+    #[serde(default)]
+    pub evasion_masters: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
