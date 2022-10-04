@@ -45,18 +45,18 @@ pub async fn recent_test_merges(
 
     match sqlx::query(
         "SELECT 
-			round_id,
-			datetime,
-			JSON_EXTRACT(json, '$.data.*.number') AS test_merges,
-			round.server_port
-		FROM
-			tgstation13.feedback
-		JOIN round ON round.id = round_id
-		WHERE
-			key_name = 'testmerged_prs'
-		ORDER BY round.id DESC
-		LIMIT 200;
-	",
+            round_id,
+            datetime,
+            JSON_EXTRACT(json, '$.data.*.number') AS test_merges,
+            round.server_port
+        FROM
+            tgstation13.feedback
+        JOIN round ON round.id = round_id
+        WHERE
+            key_name = 'testmerged_prs'
+        ORDER BY round.id DESC
+        LIMIT 200;
+    ",
     )
     .fetch_all(&state.mysql_pool)
     .await
@@ -81,20 +81,20 @@ pub async fn recent_test_merges(
                     let port = row.get("server_port");
                     let round_id = row.get("round_id");
 
-					let server_name = crate::servers::server_by_port(port)
-						.map(|server| server.name.to_owned())
-						.unwrap_or_else(|| format!("Unknown ({port})"));
+                    let server_name = crate::servers::server_by_port(port)
+                        .map(|server| server.name.to_owned())
+                        .unwrap_or_else(|| format!("Unknown ({port})"));
 
                     TestMerge {
                         round_id,
-						datetime,
+                        datetime,
                         test_merges,
                         server: server_name.clone(),
                         url: format!(
                             "https://tgstation13.org/parsed-logs/{server_name}/data/logs/{}/{}/{}/round-{round_id}/",
-							datetime.format("%Y"),
-							datetime.format("%m"),
-							datetime.format("%d"),
+                            datetime.format("%Y"),
+                            datetime.format("%m"),
+                            datetime.format("%d"),
                         ),
                     }
                 })
