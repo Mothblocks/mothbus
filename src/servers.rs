@@ -6,7 +6,9 @@ pub struct Server {
     pub port: u16,
 }
 
-pub const SERVERS: [Server; 5] = [
+pub type Servers = [Server; 6];
+
+pub const SERVERS: Servers = [
     Server {
         name: "bagil",
         port: 2337,
@@ -27,8 +29,16 @@ pub const SERVERS: [Server; 5] = [
         name: "campbell",
         port: 6337,
     },
+    Server {
+        name: "event-hall-us",
+        port: 4447,
+    },
 ];
 
 pub fn server_by_name(name: &str) -> Option<&'static Server> {
     SERVERS.iter().find(|s| s.name == name)
+}
+
+pub fn server_by_port(port: u16) -> Option<&'static Server> {
+    SERVERS.iter().find(|s| s.port == port)
 }

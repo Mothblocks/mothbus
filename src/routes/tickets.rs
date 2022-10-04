@@ -9,7 +9,7 @@ use color_eyre::eyre::Context;
 use http::StatusCode;
 use serde::{Deserialize, Serialize, Serializer};
 
-use crate::{auth::AuthenticatedUser, servers::Server, state::User, State};
+use crate::{auth::AuthenticatedUser, servers::Servers, state::User, State};
 
 use super::{
     errors::{make_forbidden, make_not_found},
@@ -47,7 +47,7 @@ const SELECT_TICKETS_TEMPLATE: &str = r#"
 struct TicketsTemplate {
     base: TemplateBase,
     can_read_tickets: bool,
-    servers: &'static [Server; 5],
+    servers: &'static Servers,
 }
 
 #[derive(Debug, Deserialize)]
