@@ -18,8 +18,10 @@ pub struct Poll {
 
     admin_only: bool,
     created_by_ckey: String,
-    seconds_until_end: i64,
+    start_date: String,
     wait_for_results: bool,
+
+    seconds_until_end: i64,
 }
 
 impl Poll {
@@ -33,8 +35,10 @@ impl Poll {
 
             admin_only: row.try_get("adminonly")?,
             created_by_ckey: row.try_get("createdby_ckey")?,
-            seconds_until_end: row.try_get("seconds_until_end")?,
+            start_date: row.try_get("start_date")?,
             wait_for_results: !row.try_get("dontshow")?,
+
+            seconds_until_end: row.try_get("seconds_until_end")?,
         })
     }
 
@@ -53,6 +57,7 @@ pub async fn create_poll_cache(state: Arc<State>) -> color_eyre::Result<HashMap<
             poll_question.id,
             poll_question.question,
             poll_question.subtitle,
+            DATE_FORMAT(poll_question.starttime, '%Y-%m-%d') AS start_date,
             UNIX_TIMESTAMP(poll_question.endtime) - UNIX_TIMESTAMP() AS seconds_until_end,
             poll_question.adminonly,
             poll_question.dontshow,

@@ -8,7 +8,7 @@
 	<ul>
 		{{#each polls as |poll|}}
 			<li>
-				<a href="/polls/{{ poll.id }}">{{ (remove_html_tags poll.question) }}</a>
+				<a href="/polls/{{ poll.id }}">{{ poll.start_date }} - {{ (remove_html_tags poll.question) }}</a>
 				{{#if poll.admin_only}}
 					🛡️
 				{{/if}}
