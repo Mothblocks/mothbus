@@ -1,0 +1,32 @@
+{{#*inline "head"}}
+	<meta property="og:title" content="{{ base.title }} - mothbus" />
+	<meta property="og:description" content="{{ base.subtitle }}" />
+{{/inline}}
+
+{{#*inline "page"}}
+	<h1>
+		{{ (remove_html_tags poll.question) }}
+
+		{{#if poll.admin_only}}
+			🛡️
+		{{/if}}
+	</h1>
+	
+	{{#if poll.subtitle}}
+		<h3>{{ (remove_html_tags poll.subtitle) }}</h3>
+	{{/if}}
+
+	<hr />
+
+	<ul>
+		{{#each poll.options as |option|}}
+			<li>
+				<b>{{ (remove_html_tags option.0) }}</b> ({{ option.1 }})
+			</li>
+		{{/each}}
+	</ul>
+
+	<a href="/polls">back to polls</a>
+{{/inline}}
+
+{{> base}}

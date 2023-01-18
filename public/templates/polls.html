@@ -1,0 +1,20 @@
+{{#*inline "page"}}
+	<h1>polls</h1>
+
+	{{#if can_read_admin_only_polls}}
+		<p>🛡️ - admin only</p>
+	{{/if}}
+
+	<ul>
+		{{#each polls as |poll|}}
+			<li>
+				<a href="/polls/{{ poll.id }}">{{ (remove_html_tags poll.question) }}</a>
+				{{#if poll.admin_only}}
+					🛡️
+				{{/if}}
+			</li>
+		{{/each}}
+	</ul>
+{{/inline}}
+
+{{> base}}

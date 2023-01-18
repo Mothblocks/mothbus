@@ -3,6 +3,7 @@ mod block_templates;
 mod config;
 mod handlebars;
 mod hide_debug;
+mod reserved_cache;
 mod routes;
 mod servers;
 mod session;
@@ -58,6 +59,8 @@ async fn main() -> color_eyre::Result<()> {
         .route("/oauth", get(routes::login::oauth))
         .route("/@:ckey", get(routes::user::for_ckey))
         .route("/recent-test-merges.json", get(routes::recent_test_merges))
+        .route("/polls", get(routes::polls::index))
+        .route("/polls/:poll", get(routes::polls::for_poll))
         .route("/tickets", get(routes::tickets::index))
         .route("/tickets/@:ckey", get(routes::tickets::for_ckey))
         .route("/tickets/server/:server", get(routes::tickets::for_server))

@@ -1,17 +1,22 @@
 {{#*inline "page"}}
 	<h1>home</h1>
 
-	{{#if base.user}}
-		<ul>
-			<li><a href="/tickets/@{{ base.user.ckey }}">my tickets</a></li>
+	<ul>
+		<li><a href="/polls">view polls</a></li>
+
+		{{#if base.user}}
+			<hr />
+			<li><a href="/tickets/@{{ base.user.ckey }}">my ticketsss</a></li>
 
 			{{#if (user_reads_tickets base.user) }}
 				<li><a href="/tickets">search tickets</a></li>
 			{{/if}}
-		</ul>
-	{{else}}
+		{{/if}}
+	</ul>
+
+	{{#unless base.user}}
 		to access more, <a href="/login">login with your forum account</a>
-	{{/if}}
+	{{/unless}}
 {{/inline}}
 
 {{> base}}

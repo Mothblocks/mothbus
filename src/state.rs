@@ -11,11 +11,12 @@ use sqlx::{mysql::MySqlPoolOptions, Row};
 use crate::{
     handlebars::create_handlebars,
     hide_debug::HideDebug,
+    routes::polls::PollCache,
     session::{self, Session},
     Config,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct State {
     pub config: HideDebug<Config>,
     pub handlebars: HideDebug<Handlebars<'static>>,
@@ -23,6 +24,8 @@ pub struct State {
 
     session_cache: Cache<String, Session>,
     user_cache: Cache<String, User>,
+
+    pub poll_cache: PollCache,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -37,6 +40,10 @@ impl User {
     }
 
     pub fn can_read_tickets(&self) -> bool {
+        self.admin()
+    }
+
+    pub fn can_read_admin_only_polls(&self) -> bool {
         self.admin()
     }
 }
@@ -82,6 +89,8 @@ impl State {
 
             session_cache: small_cache(),
             user_cache: small_cache(),
+
+            poll_cache: PollCache::new(),
 
             config: HideDebug(config),
         })
@@ -153,7 +162,7 @@ impl State {
 
                 for rank in rank_name.split('+') {
                     match sqlx::query("SELECT flags, exclude_flags FROM admin_ranks WHERE rank = ?")
-                        .bind(&rank)
+                        .bind(rank)
                         .fetch_optional(&self.mysql_pool)
                         .await
                     {

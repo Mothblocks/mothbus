@@ -16,6 +16,8 @@ pub use logout::logout;
 mod recent_test_merges;
 pub use recent_test_merges::recent_test_merges;
 
+pub mod polls;
+
 pub mod tickets;
 
 pub mod user;
