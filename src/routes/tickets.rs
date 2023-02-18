@@ -474,13 +474,14 @@ pub async fn for_ticket(
             .into_response();
     }
 
-    if let Some(sender) = &ticket_messages[0].data.sender {
-        if !can_read_tickets_for(&user, sender) {
-            return make_forbidden(state, FORBIDDEN_TICKET)
-                .await
-                .into_response();
-        }
-    } else if !user.can_read_tickets() {
+    if !ticket_messages.iter().any(|ticket_message| {
+        ticket_message
+            .data
+            .sender
+            .as_ref()
+            .map(|sender| can_read_tickets_for(&user, sender))
+            .unwrap_or(false)
+    }) {
         return make_forbidden(state, FORBIDDEN_TICKET)
             .await
             .into_response();
