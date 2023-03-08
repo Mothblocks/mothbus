@@ -41,6 +41,7 @@ const SELECT_TICKETS_TEMPLATE: &str = r#"
         ticket AS first_tickets ON first_tickets.round_id = ticket.round_id
             AND first_tickets.ticket = ticket.ticket
             AND first_tickets.action = 'Ticket Opened'
+            AND ticket.round_id != 0
 "#;
 
 #[derive(Serialize)]
@@ -398,6 +399,15 @@ pub async fn for_ticket(
     AuthenticatedUser(user): AuthenticatedUser,
 ) -> impl IntoResponse {
     const FORBIDDEN_TICKET: &str = "You are not allowed to read this ticket.";
+
+    // Tickets from round 0 are created when DB connection is re-established in the middle of a round.
+    // We can't show these to unauthorized users because it would potentially show other tickets
+    // from other rounds that had the same issue.
+    if round_id == 0 && !user.can_read_tickets() {
+        return make_forbidden(state, FORBIDDEN_TICKET)
+            .await
+            .into_response();
+    }
 
     let ticket_messages: Vec<_> = match sqlx::query_as::<_, TicketMessage>(
         r#"
