@@ -59,6 +59,7 @@ async fn main() -> color_eyre::Result<()> {
         .route("/oauth", get(routes::login::oauth))
         .route("/@:ckey", get(routes::user::for_ckey))
         .route("/recent-test-merges.json", get(routes::recent_test_merges))
+        .route("/rank-logs", get(routes::rank_logs))
         .route("/polls", get(routes::polls::index))
         .route("/polls/:poll", get(routes::polls::for_poll))
         .route("/tickets", get(routes::tickets::index))

@@ -2,8 +2,20 @@
 	<h1>admin rank logs</h1>
 
 	{{#*inline "list"}}
-		<div id="admin_rank_logs"></div>
+		<div id="operations_list"></div>
+
+		<div id="admin_rank_logs">
+			{{> rank_logs_list}}
+		</div>
 	{{/inline}}
+
+	{{> paginated}}
+
+	<script type="module" src="../scripts/admin_rank_logs.ts"></script>
+{{/inline}}
+
+{{#*inline "head"}}
+	<link rel="stylesheet" href="../style/rank_logs.scss" />
 {{/inline}}
 
 {{> base}}

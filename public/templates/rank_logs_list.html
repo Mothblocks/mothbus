@@ -1,0 +1,6 @@
+{{#each logs as |log|}}
+	<div class="rank-log" data-operation="{{ log.operation }}">
+		<abbr class="rank-log-timestamp" title="{{ log.datetime }}">{{english_duration log.datetime}}</abbr> - 
+		<span class="rank-log-entry">{{ log.log }}</span>
+	</div>
+{{/each}}

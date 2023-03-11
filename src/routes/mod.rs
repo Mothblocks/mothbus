@@ -13,6 +13,9 @@ pub mod login;
 mod logout;
 pub use logout::logout;
 
+mod rank_logs;
+pub use rank_logs::rank_logs;
+
 mod recent_test_merges;
 pub use recent_test_merges::recent_test_merges;
 
