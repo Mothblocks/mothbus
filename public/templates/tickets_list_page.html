@@ -1,20 +1,15 @@
 {{#*inline "page"}}
 	<h1>tickets for {{ who }}</h1>
 
-	<div>
-		<span id="page_counter">page {{ page }} - </span>
-		<a id="back_to_page_1_link">back to page 1</a>
-	</div><br />
+	{{#*inline "list"}}
+		<div id="tickets_list">
+			{{> tickets_list}}
+		</div>
+	{{/inline}}
 
-	<div id="tickets_list">
-		{{> tickets_list}}
-	</div>
+	{{> paginated}}
 
-	<div>
-		<a id="next_page_link" href="javascript:nextPage()">next page</a>
-	</div>
-
-	<script src="../scripts/tickets_list_page.ts"></script>
+	<script type="module" src="../scripts/tickets_list_page.ts"></script>
 {{/inline}}
 
 {{> base}}
