@@ -19,6 +19,9 @@ pub use rank_logs::rank_logs;
 mod recent_test_merges;
 pub use recent_test_merges::recent_test_merges;
 
+mod round_info;
+pub use round_info::round_info;
+
 pub mod polls;
 
 pub mod tickets;

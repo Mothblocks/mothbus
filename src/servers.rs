@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct Server {
     pub name: &'static str,
     pub port: u16,
