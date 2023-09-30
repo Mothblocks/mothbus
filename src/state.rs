@@ -100,7 +100,7 @@ impl State {
         match self.handlebars.render(path, &data) {
             Ok(response) => Html(response).into_response(),
             Err(error) => {
-                tracing::error!("failed to render template {path}: {error:#?}");
+                tracing::error!("failed to render template {path}: {error:#}");
 
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,

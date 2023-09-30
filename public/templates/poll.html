@@ -18,12 +18,30 @@
 
 	<hr />
 
-	<ul>
-		{{#each poll.options as |option|}}
-			<li>
-				<b>{{remove_html_tags option.0}}</b> ({{ option.1 }})
-			</li>
-		{{/each}}
+		{{#if poll.options.Choice}}
+			<ul>
+				{{#each poll.options.Choice as |option|}}
+					<li>
+						<b>{{remove_html_tags option.0}}</b> ({{ option.1 }})
+					</li>
+				{{/each}}
+			</ul>
+		{{else}}
+			{{#if poll.options.NumVal}}
+				{{#each poll.options.NumVal as |option|}}
+					<h3>{{ remove_html_tags option.0 }}</h3>
+					<ul>
+						{{#each option.1 as |suboption|}}
+							<li>
+								<b>{{ suboption.0 }}</b> ({{ suboption.1 }})
+							</li>
+						{{/each}}
+					</ul>
+				{{/each}}
+			{{else}}
+				<b style="color: red">error: unknown poll type</b>
+			{{/if}}
+		{{/if}}
 	</ul>
 
 	<a href="/polls">back to polls</a>

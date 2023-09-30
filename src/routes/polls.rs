@@ -1,4 +1,8 @@
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{
+    collections::{BTreeMap, HashMap},
+    sync::Arc,
+    time::Duration,
+};
 
 use axum::{extract::Path, response::IntoResponse, Extension};
 use moka::future::Cache;
@@ -10,12 +14,18 @@ use crate::{auth::AuthenticatedUserOptional, state::User, State};
 use super::TemplateBase;
 
 #[derive(Clone, Debug, Serialize)]
+pub enum PollOptions {
+    Choice(Vec<(String, i64)>),
+    NumVal(Vec<(String, Vec<(i32, i32)>)>),
+}
+
+#[derive(Clone, Debug, Serialize)]
 pub struct Poll {
     id: i32,
 
     question: String,
     subtitle: Option<String>,
-    options: Vec<(String, i64)>,
+    options: PollOptions,
 
     admin_only: bool,
     created_by_ckey: String,
@@ -26,13 +36,13 @@ pub struct Poll {
 }
 
 impl Poll {
-    pub fn from_row(row: &MySqlRow) -> Result<Self, sqlx::Error> {
+    fn from_row(row: &MySqlRow, options: PollOptions) -> Result<Self, sqlx::Error> {
         Ok(Self {
             id: row.try_get("id")?,
 
             question: row.try_get("question")?,
             subtitle: row.try_get("subtitle")?,
-            options: vec![(row.try_get("text")?, row.try_get("vote_count")?)],
+            options,
 
             admin_only: row.try_get("adminonly")?,
             created_by_ckey: row.try_get("createdby_ckey")?,
@@ -43,10 +53,45 @@ impl Poll {
         })
     }
 
-    pub fn merge_with(&mut self, other: &MySqlRow) -> Result<(), sqlx::Error> {
+    pub fn from_choiced_row(row: &MySqlRow) -> Result<Self, sqlx::Error> {
+        Self::from_row(
+            row,
+            PollOptions::Choice(vec![(row.try_get("text")?, row.try_get("vote_count")?)]),
+        )
+    }
+
+    pub fn from_numval_row(row: &MySqlRow, votes: BTreeMap<i32, i32>) -> Result<Self, sqlx::Error> {
+        Self::from_row(
+            row,
+            PollOptions::NumVal(vec![(row.try_get("text")?, votes.into_iter().collect())]),
+        )
+    }
+
+    pub fn merge_with_choiced(&mut self, other: &MySqlRow) -> Result<(), sqlx::Error> {
         assert_eq!(self.id, other.try_get::<i32, _>("id")?);
-        self.options
-            .push((other.try_get("text")?, other.try_get("vote_count")?));
+
+        let PollOptions::Choice(choice_votes) = &mut self.options else {
+            panic!("expected choice poll");
+        };
+
+        choice_votes.push((other.try_get("text")?, other.try_get("vote_count")?));
+
+        Ok(())
+    }
+
+    pub fn merge_with_numval(
+        &mut self,
+        other: &MySqlRow,
+        votes: BTreeMap<i32, i32>,
+    ) -> Result<(), sqlx::Error> {
+        assert_eq!(self.id, other.try_get::<i32, _>("id")?);
+
+        let PollOptions::NumVal(numval_votes) = &mut self.options else {
+            panic!("expected numval poll");
+        };
+
+        numval_votes.push((other.try_get("text")?, votes.into_iter().collect()));
+
         Ok(())
     }
 }
@@ -58,6 +103,7 @@ pub async fn create_poll_cache(state: Arc<State>) -> color_eyre::Result<HashMap<
     let rows = sqlx::query(
         "SELECT 
             poll_question.id,
+            poll_option.id AS option_id,
             poll_question.question,
             poll_question.subtitle,
             DATE_FORMAT(poll_question.starttime, '%Y-%m-%d') AS start_date,
@@ -66,6 +112,9 @@ pub async fn create_poll_cache(state: Arc<State>) -> color_eyre::Result<HashMap<
             poll_question.dontshow,
             poll_question.createdby_ckey,
             poll_option.text,
+            poll_question.polltype,
+            poll_option.minval,
+            poll_option.maxval,
             (SELECT 
                     COUNT(*)
                 FROM
@@ -79,10 +128,24 @@ pub async fn create_poll_cache(state: Arc<State>) -> color_eyre::Result<HashMap<
                 AND poll_option.deleted = FALSE
         WHERE
             (poll_question.polltype = 'OPTION'
-                OR poll_question.polltype = 'MULTICHOICE')
+                OR poll_question.polltype = 'MULTICHOICE'
+                OR poll_question.polltype = 'NUMVAL')
                 AND poll_question.deleted = FALSE
         ORDER BY id DESC
     ",
+    )
+    .fetch_all(&state.mysql_pool)
+    .await?;
+
+    let numval_votes = sqlx::query(
+        "SELECT 
+            optionid, rating, COUNT(*) AS vote_count
+        FROM
+            poll_vote
+        WHERE
+            rating IS NOT NULL
+        GROUP BY optionid, rating
+        ORDER BY id DESC",
     )
     .fetch_all(&state.mysql_pool)
     .await?;
@@ -92,10 +155,33 @@ pub async fn create_poll_cache(state: Arc<State>) -> color_eyre::Result<HashMap<
     for row in rows {
         let id = row.try_get("id")?;
 
-        if let Some(poll) = polls.get_mut(&id) {
-            poll.merge_with(&row)?;
+        if row.try_get::<String, _>("polltype")? == "NUMVAL" {
+            let min: i32 = row.try_get("minval")?;
+            let max: i32 = row.try_get("maxval")?;
+
+            let mut votes = BTreeMap::new();
+
+            for i in min..=max {
+                votes.insert(i, 0);
+            }
+
+            let option_id: i32 = row.try_get("option_id")?;
+
+            for vote in &numval_votes {
+                if vote.try_get::<i32, _>("optionid")? == option_id {
+                    votes.insert(vote.try_get("rating")?, vote.try_get("vote_count")?);
+                }
+            }
+
+            if let Some(poll) = polls.get_mut(&id) {
+                poll.merge_with_numval(&row, votes)?;
+            } else {
+                polls.insert(id, Poll::from_numval_row(&row, votes)?);
+            }
+        } else if let Some(poll) = polls.get_mut(&id) {
+            poll.merge_with_choiced(&row)?;
         } else {
-            polls.insert(id, Poll::from_row(&row)?);
+            polls.insert(id, Poll::from_choiced_row(&row)?);
         }
     }
 
@@ -232,7 +318,7 @@ pub async fn for_poll(
     )
 }
 
-type Polls = Arc<HashMap<i32, crate::routes::polls::Poll>>;
+type Polls = Arc<HashMap<i32, Poll>>;
 
 #[derive(Debug)]
 pub struct PollCache {
