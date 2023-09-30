@@ -3,7 +3,6 @@ mod block_templates;
 mod config;
 mod handlebars;
 mod hide_debug;
-mod reserved_cache;
 mod routes;
 mod servers;
 mod session;

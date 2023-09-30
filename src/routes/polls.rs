@@ -1,10 +1,11 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use axum::{extract::Path, response::IntoResponse, Extension};
+use moka::future::Cache;
 use serde::Serialize;
 use sqlx::{mysql::MySqlRow, Row};
 
-use crate::{auth::AuthenticatedUserOptional, reserved_cache::ReservedCache, state::User, State};
+use crate::{auth::AuthenticatedUserOptional, state::User, State};
 
 use super::TemplateBase;
 
@@ -52,6 +53,8 @@ impl Poll {
 
 #[tracing::instrument]
 pub async fn create_poll_cache(state: Arc<State>) -> color_eyre::Result<HashMap<i32, Poll>> {
+    tracing::trace!("creating poll cache");
+
     let rows = sqlx::query(
         "SELECT 
             poll_question.id,
@@ -134,9 +137,9 @@ pub async fn index(
     Extension(state): Extension<Arc<State>>,
     AuthenticatedUserOptional(user): AuthenticatedUserOptional,
 ) -> impl IntoResponse {
-    let PollCache(cache) = &state.poll_cache;
+    let cache = &state.poll_cache;
 
-    let polls = match Arc::clone(cache).get(Arc::clone(&state)).await {
+    let polls = match cache.get(Arc::clone(&state)).await {
         Ok(polls) => polls,
         Err(error) => {
             return super::errors::make_internal_server_error(state, error)
@@ -184,9 +187,9 @@ pub async fn for_poll(
     AuthenticatedUserOptional(user): AuthenticatedUserOptional,
     Path(id): Path<i32>,
 ) -> impl IntoResponse {
-    let PollCache(cache) = &state.poll_cache;
+    let cache = &state.poll_cache;
 
-    let polls = match Arc::clone(cache).get(Arc::clone(&state)).await {
+    let polls = match cache.get(Arc::clone(&state)).await {
         Ok(polls) => polls,
         Err(error) => {
             return super::errors::make_internal_server_error(state, error)
@@ -229,15 +232,35 @@ pub async fn for_poll(
     )
 }
 
+type Polls = Arc<HashMap<i32, crate::routes::polls::Poll>>;
+
 #[derive(Debug)]
-pub struct PollCache(Arc<ReservedCache<HashMap<i32, crate::routes::polls::Poll>>>);
+pub struct PollCache {
+    cache: Cache<(), Polls>,
+}
 
 impl PollCache {
     pub fn new() -> Self {
-        Self(Arc::new(ReservedCache::new(
-            Duration::from_secs(60),
-            create_poll_cache,
-        )))
+        Self {
+            cache: Cache::builder()
+                .time_to_live(Duration::from_secs(60))
+                .build(),
+        }
+    }
+
+    async fn get(&self, state: Arc<State>) -> color_eyre::Result<Polls> {
+        self.cache
+            .try_get_with((), async move {
+                match create_poll_cache(state).await {
+                    Ok(polls) => Ok(Arc::new(polls)),
+                    Err(error) => Err(error),
+                }
+            })
+            .await
+            .map_err(|error| {
+                Arc::try_unwrap(error)
+                    .unwrap_or_else(|arc| color_eyre::Report::msg(arc.to_string()))
+            })
     }
 }
 

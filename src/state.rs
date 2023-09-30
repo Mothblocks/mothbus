@@ -25,7 +25,7 @@ pub struct State {
     session_cache: Cache<String, Session>,
     user_cache: Cache<String, User>,
 
-    pub poll_cache: PollCache,
+    pub poll_cache: HideDebug<PollCache>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -90,7 +90,7 @@ impl State {
             session_cache: small_cache(),
             user_cache: small_cache(),
 
-            poll_cache: PollCache::new(),
+            poll_cache: HideDebug(PollCache::new()),
 
             config: HideDebug(config),
         })
@@ -127,7 +127,7 @@ impl State {
         self: Arc<Self>,
         session_jwt: &str,
     ) -> color_eyre::Result<Option<Session>> {
-        if let Some(session) = self.session_cache.get(&session_jwt.to_string()) {
+        if let Some(session) = self.session_cache.get(&session_jwt.to_string()).await {
             return Ok(Some(session));
         }
 
@@ -141,13 +141,16 @@ impl State {
             .await;
 
         Ok(Some(
-            self.session_cache.get(&session_jwt.to_string()).unwrap(),
+            self.session_cache
+                .get(&session_jwt.to_string())
+                .await
+                .unwrap(),
         ))
     }
 
     #[tracing::instrument]
     pub async fn user(self: Arc<Self>, ckey: &str) -> color_eyre::Result<User> {
-        if let Some(user) = self.user_cache.get(&ckey.to_string()) {
+        if let Some(user) = self.user_cache.get(&ckey.to_string()).await {
             return Ok(user);
         }
 
@@ -193,7 +196,7 @@ impl State {
 
         self.user_cache.insert(ckey.to_string(), user).await;
 
-        Ok(self.user_cache.get(&ckey.to_string()).unwrap())
+        Ok(self.user_cache.get(&ckey.to_string()).await.unwrap())
     }
 
     /// Creates the session, and returns the session key
