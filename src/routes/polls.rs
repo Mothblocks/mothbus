@@ -17,6 +17,13 @@ use super::TemplateBase;
 pub enum PollOptions {
     Choice(Vec<(String, i64)>),
     NumVal(Vec<(String, Vec<(i32, i32)>)>),
+    Text(Vec<TextAnswer>),
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct TextAnswer {
+    ckey: String,
+    text: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -67,6 +74,16 @@ impl Poll {
         )
     }
 
+    pub fn from_text_row(row: &MySqlRow) -> Result<Self, sqlx::Error> {
+        Self::from_row(
+            row,
+            PollOptions::Text(vec![TextAnswer {
+                ckey: row.try_get("ckey")?,
+                text: row.try_get("replytext")?,
+            }]),
+        )
+    }
+
     pub fn merge_with_choiced(&mut self, other: &MySqlRow) -> Result<(), sqlx::Error> {
         assert_eq!(self.id, other.try_get::<i32, _>("id")?);
 
@@ -91,6 +108,25 @@ impl Poll {
         };
 
         numval_votes.push((other.try_get("text")?, votes.into_iter().collect()));
+
+        Ok(())
+    }
+
+    pub fn merge_with_text(
+        &mut self,
+        other_poll: &MySqlRow,
+        other_answer: &MySqlRow,
+    ) -> Result<(), sqlx::Error> {
+        assert_eq!(self.id, other_poll.try_get::<i32, _>("id")?);
+
+        let PollOptions::Text(text_answers) = &mut self.options else {
+            panic!("expected text poll");
+        };
+
+        text_answers.push(TextAnswer {
+            ckey: other_answer.try_get("ckey")?,
+            text: other_answer.try_get("replytext")?,
+        });
 
         Ok(())
     }
@@ -133,6 +169,31 @@ pub async fn create_poll_cache(state: Arc<State>) -> color_eyre::Result<HashMap<
                 AND poll_question.deleted = FALSE
         ORDER BY id DESC
     ",
+    )
+    .fetch_all(&state.mysql_pool)
+    .await?;
+
+    let text_polls_and_answers = sqlx::query(
+        "SELECT 
+            poll_question.id,
+            poll_question.question,
+            poll_question.subtitle,
+            DATE_FORMAT(poll_question.starttime, '%Y-%m-%d') AS start_date,
+            UNIX_TIMESTAMP(poll_question.endtime) - UNIX_TIMESTAMP() AS seconds_until_end,
+            poll_question.adminonly,
+            poll_question.dontshow,
+            poll_question.createdby_ckey,
+            poll_textreply.ckey,
+            poll_textreply.replytext
+        FROM
+            poll_question
+                JOIN
+            poll_textreply ON poll_textreply.pollid = poll_question.id
+        WHERE
+            polltype = 'TEXT'
+                AND poll_question.deleted = FALSE
+                AND poll_textreply.deleted = FALSE
+        ORDER BY poll_question.id DESC",
     )
     .fetch_all(&state.mysql_pool)
     .await?;
@@ -182,6 +243,15 @@ pub async fn create_poll_cache(state: Arc<State>) -> color_eyre::Result<HashMap<
             poll.merge_with_choiced(&row)?;
         } else {
             polls.insert(id, Poll::from_choiced_row(&row)?);
+        }
+    }
+
+    for row in text_polls_and_answers {
+        let id = row.try_get("id")?;
+        if let Some(poll) = polls.get_mut(&id) {
+            poll.merge_with_text(&row, &row)?;
+        } else {
+            polls.insert(id, Poll::from_text_row(&row)?);
         }
     }
 
@@ -265,6 +335,7 @@ pub async fn index(
 struct PollTemplate {
     base: TemplateBase,
     poll: Poll,
+    can_read_text_ckeys: bool,
 }
 
 #[tracing::instrument]
@@ -308,12 +379,16 @@ pub async fn for_poll(
     state.render_template(
         "poll",
         PollTemplate {
+            poll: poll.clone(),
+            can_read_text_ckeys: match &user {
+                Some(user) => user.can_read_text_ckeys(),
+                None => false,
+            },
+
             base: TemplateBase {
                 title: poll.question.clone().into(),
                 user,
             },
-
-            poll: poll.clone(),
         },
     )
 }

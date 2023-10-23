@@ -46,6 +46,10 @@ impl User {
     pub fn can_read_admin_only_polls(&self) -> bool {
         self.admin()
     }
+
+    pub fn can_read_text_ckeys(&self) -> bool {
+        self.admin()
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
