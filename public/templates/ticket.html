@@ -1,6 +1,7 @@
 {{#*inline "page"}}
-	<h1><a href="/tickets/{{ round_id }}">{{ round_id }}</a> - {{ ticket_no }}</h1>
-
+	<h1 style="margin-bottom: 3px"><a href="/tickets/{{ round_id }}">{{ round_id }}</a> - {{ ticket_no }}</h1>
+	<h3 style="display: inline-block; margin-bottom: 20px">see on <a href="https://statbus.space/tickets/{{ round_id}}/{{ ticket_no }}" target="_blank">statbus</a></h3>
+	
 	{{#each ticket_messages as |ticket|}}
 		{{> ticket_entry ticket=ticket action=ticket.action}}
 	{{/each}}
