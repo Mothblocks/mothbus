@@ -29,6 +29,16 @@ pub(self) fn verify_signature(secret: &str, body: &[u8], signature: &str) -> Res
     }
 }
 
+pub(self) fn strip_annoying_markdown(input: &str) -> String {
+    let comments_regex = regex::Regex::new(r"(?s)<!--(.*?)-->").unwrap();
+    let mut output = comments_regex.replace_all(input, "").to_string();
+
+    let headers_regex = regex::Regex::new(r"(?m)^#+\s*(.*?)\s*$").unwrap();
+    output = headers_regex.replace_all(&output, "**$1**").to_string();
+
+    output
+}
+
 #[tracing::instrument(skip(body))]
 pub async fn github_webhook(
     Extension(state): Extension<Arc<crate::State>>,
@@ -63,10 +73,8 @@ pub async fn github_webhook(
         if webhook_body.get("action").map(|x| x.as_str()) == Some(Some("opened")) {
             tracing::debug!("received new issue");
 
-            let mut body = webhook_body["issue"]["body"]
-                .as_str()
-                .unwrap_or_default()
-                .to_owned();
+            let mut body =
+                strip_annoying_markdown(webhook_body["issue"]["body"].as_str().unwrap_or_default());
 
             if body.len() > 500 {
                 body.truncate(500);
@@ -134,5 +142,29 @@ mod tests {
             ),
             Ok(())
         );
+    }
+
+    #[test]
+    fn strip_annoying_markdown_headers() {
+        assert_eq!(
+            strip_annoying_markdown("# Header\nText"),
+            "**Header**\nText"
+        )
+    }
+
+    #[test]
+    fn strip_annoying_markdown_keep() {
+        assert_eq!(
+            strip_annoying_markdown("**bold** *italics* __underline__ **__bold and underline__**"),
+            "**bold** *italics* __underline__ **__bold and underline__**"
+        )
+    }
+
+    #[test]
+    fn strip_annoying_markdown_comments() {
+        assert_eq!(
+            strip_annoying_markdown("<!-- comment\nwith new lines -->"),
+            ""
+        )
     }
 }
