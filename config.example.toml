@@ -4,6 +4,10 @@ db_url = "mysql://username:password@host:port/db"
 
 # mock_login = true
 
+[github_webhook]
+secret = "hunter2"
+discord_url = "https://discord.com/api/webhooks/1234/abcd"
+
 [oauth2]
 client_id = "1234"
 client_secret = "OAUTH_CLIENT_SECRET"

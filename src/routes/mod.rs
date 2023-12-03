@@ -5,6 +5,9 @@ use serde::Serialize;
 pub mod errors;
 pub use errors::not_found;
 
+pub mod github_webhook;
+pub use github_webhook::github_webhook;
+
 mod index;
 pub use index::index;
 

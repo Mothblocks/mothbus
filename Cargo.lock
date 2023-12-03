@@ -557,12 +557,13 @@ dependencies = [
 
 [[package]]
 name = "digest"
-version = "0.10.3"
+version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2fb860ca6fafa5552fb6d0e816a69c8e49f0908bf524e30a90d97c85892d506"
+checksum = "9ed9a281f7bc9b7576e61468ba615a66a5c8cfdff42420a70aa82701a3b1e292"
 dependencies = [
  "block-buffer 0.10.2",
  "crypto-common",
+ "subtle",
 ]
 
 [[package]]
@@ -893,6 +894,15 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+
+[[package]]
+name = "hmac"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c49c37c09c17a53d937dfbb742eb3a961d65a994e6bcdcf37e7399d0cc8ab5e"
+dependencies = [
+ "digest 0.10.7",
+]
 
 [[package]]
 name = "html-escape"
@@ -1260,7 +1270,7 @@ dependencies = [
 
 [[package]]
 name = "mothbus"
-version = "1.9.0"
+version = "1.11.0"
 dependencies = [
  "axum",
  "axum-extra",
@@ -1268,6 +1278,7 @@ dependencies = [
  "chrono",
  "color-eyre",
  "handlebars",
+ "hmac",
  "html-escape",
  "http",
  "jsonwebtoken",
@@ -1278,6 +1289,7 @@ dependencies = [
  "scraper",
  "serde",
  "serde_json",
+ "sha2",
  "sqlx",
  "tokio",
  "toml",
@@ -1914,7 +1926,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4cf22754c49613d2b3b119f0e5d46e34a2c628a937e3024b8762de4e7d8c710b"
 dependencies = [
  "byteorder",
- "digest 0.10.3",
+ "digest 0.10.7",
  "num-bigint-dig",
  "num-integer",
  "num-iter",
@@ -2112,18 +2124,18 @@ checksum = "028f48d513f9678cda28f6e4064755b3fbb2af6acd672f2c209b62323f7aea0f"
 dependencies = [
  "cfg-if",
  "cpufeatures",
- "digest 0.10.3",
+ "digest 0.10.7",
 ]
 
 [[package]]
 name = "sha2"
-version = "0.10.2"
+version = "0.10.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "55deaec60f81eefe3cce0dc50bda92d6d8e88f2a27df7c5033b42afeb1ed2676"
+checksum = "793db75ad2bcafc3ffa7c68b215fee268f537982cd901d132f89c6343f3a3dc8"
 dependencies = [
  "cfg-if",
  "cpufeatures",
- "digest 0.10.3",
+ "digest 0.10.7",
 ]
 
 [[package]]
@@ -2250,7 +2262,7 @@ dependencies = [
  "chrono",
  "crc",
  "crossbeam-queue",
- "digest 0.10.3",
+ "digest 0.10.7",
  "either",
  "event-listener",
  "futures-channel",

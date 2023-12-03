@@ -18,7 +18,7 @@ use axum::{
     extract::Extension,
     handler::Handler,
     response::IntoResponse,
-    routing::{get, get_service},
+    routing::{get, get_service, post},
     Router,
 };
 use color_eyre::eyre::Context;
@@ -52,6 +52,7 @@ async fn main() -> color_eyre::Result<()> {
 
     let app = Router::new()
         .route("/", get(routes::index))
+        .route("/github-webhook", post(routes::github_webhook))
         .route("/login", get(routes::login::index))
         .route("/logout", get(routes::logout))
         .route("/mock-login/:ckey", get(routes::login::mock_login))

@@ -13,6 +13,8 @@ pub struct Config {
 
     pub oauth2: OAuth2Options,
 
+    pub github_webhook: GithubWebhookOptions,
+
     #[serde(default)]
     pub evasion_masters: Vec<String>,
 }
@@ -22,6 +24,12 @@ pub struct OAuth2Options {
     pub client_id: String,
     pub client_secret: String,
     pub redirect_uri: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct GithubWebhookOptions {
+    pub secret: String,
+    pub discord_url: String,
 }
 
 impl Config {
