@@ -1041,6 +1041,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "indoc"
+version = "2.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e186cfbae8084e513daff4240b4797e342f988cecda4fb6c939150f96315fd8"
+
+[[package]]
 name = "instant"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1279,7 +1285,7 @@ dependencies = [
 
 [[package]]
 name = "mothbus"
-version = "1.12.0"
+version = "1.13.0"
 dependencies = [
  "axum",
  "axum-extra",
@@ -1290,6 +1296,7 @@ dependencies = [
  "hmac",
  "html-escape",
  "http",
+ "indoc",
  "jsonwebtoken",
  "moka",
  "once_cell",
