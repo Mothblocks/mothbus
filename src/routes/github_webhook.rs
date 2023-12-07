@@ -33,7 +33,7 @@ pub(self) fn simplify_body(input: &str) -> String {
     let comments_regex = regex::Regex::new(r"(?s)<!--(.*?)-->").unwrap();
     let mut output = comments_regex.replace_all(input, "").to_string();
 
-    let issue_summary_regex = regex::Regex::new(r"(?sm)## Issue Summary:.*?(^.+)").unwrap();
+    let issue_summary_regex = regex::Regex::new(r"(?sm)## Issue Summary.*?(^.+)").unwrap();
     if let Some(captures) = issue_summary_regex.captures(&output) {
         output = captures.get(1).unwrap().as_str().to_string();
     } else {
