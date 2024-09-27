@@ -58,7 +58,7 @@ impl<B: Send> FromRequest<B> for AuthenticatedUserOptional {
 
                 Err((
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("error getting user, this is a bug.\n{error}"),
+                    format!("error getting user, this is a bug. please report to mothblocks"),
                 ))
             }
         }
@@ -87,7 +87,7 @@ impl<B: Send> FromRequest<B> for AuthenticatedUser {
 
                 Err((
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("error getting user, this is a bug.\n{error}"),
+                    format!("error getting user, this is a bug. please report to mothblocks"),
                 )
                     .into_response())
             }

@@ -108,7 +108,9 @@ impl State {
 
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("failed to render template. this is a bug.\n{error}"),
+                    format!(
+                        "failed to render template. this is a bug. please report to mothblocks"
+                    ),
                 )
                     .into_response()
             }

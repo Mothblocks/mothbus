@@ -44,7 +44,7 @@ pub async fn recent_test_merges(
     tracing::debug!("requesting recent test merges from db");
 
     match sqlx::query(
-        "SELECT 
+        "SELECT
             round_id,
             datetime,
             JSON_EXTRACT(json, '$.data.*.number') AS test_merges,
@@ -109,7 +109,11 @@ pub async fn recent_test_merges(
 
         Err(error) => {
             tracing::error!("failed to fetch new test merges: {error:#?}");
-            (StatusCode::INTERNAL_SERVER_ERROR, format!("{error}")).into_response()
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "something went wrong, contact mothblocks",
+            )
+                .into_response()
         }
     }
 }
