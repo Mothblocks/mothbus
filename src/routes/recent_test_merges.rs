@@ -91,7 +91,10 @@ pub async fn recent_test_merges(
                         test_merges,
                         server: server_name.clone(),
                         url: format!(
-                            "https://statbus.space/round/{round_id}/logs",
+                            "https://{server_name}-logs.tgstation13.org/{}/{}/{}/round-{round_id}/",
+                            datetime.format("%Y"),
+                            datetime.format("%m"),
+                            datetime.format("%d"),
                         ),
                     }
                 })
