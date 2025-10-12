@@ -91,7 +91,7 @@ pub async fn recent_test_merges(
                         test_merges,
                         server: server_name.clone(),
                         url: format!(
-                            "https://tgstation13.org/parsed-logs/{server_name}/data/logs/{}/{}/{}/round-{round_id}/",
+                            "https://{server_name}-logs.tgstation13.org/{}/{}/{}/round-{round_id}/",
                             datetime.format("%Y"),
                             datetime.format("%m"),
                             datetime.format("%d"),
