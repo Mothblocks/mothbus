@@ -1,4 +1,4 @@
-FROM rust:slim-buster as builder
+FROM rust:1.86-slim-bookworm as builder
 WORKDIR /usr/src/mothbus
 RUN apt-get update
 RUN apt-get install -y curl gnupg
@@ -16,7 +16,7 @@ FROM alpine:latest AS certs
 RUN apk --update add ca-certificates
 RUN update-ca-certificates
 
-FROM debian:buster-slim
+FROM debian:bookworm-slim
 WORKDIR /usr/bin/mothbus
 COPY --from=builder /usr/local/cargo/bin/mothbus mothbus
 COPY --from=builder /usr/src/mothbus/dist dist

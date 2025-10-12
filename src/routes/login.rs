@@ -15,7 +15,7 @@ use crate::config::OAuth2Options;
 pub async fn index(Extension(state): Extension<Arc<crate::State>>) -> impl IntoResponse {
     // TODO: &state URL parameter
     Redirect::to(&format!(
-		"https://tgstation13.org/phpBB/app.php/tgapi/oauth/auth?response_type=code&client_id={}&redirect_uri={}",
+		"https://forums.tgstation13.org/app.php/tgapi/oauth/auth?response_type=code&client_id={}&redirect_uri={}",
 		state.config.oauth2.client_id,
 		state.config.oauth2.redirect_uri,
 	))
@@ -102,7 +102,7 @@ async fn ckey_for_auth(
     tracing::debug!("requesting access token for {code}");
 
     let authorization_token_response_text = client
-        .post("https://tgstation13.org/phpBB/app.php/tgapi/oauth/token")
+        .post("https://forums.tgstation13.org/app.php/tgapi/oauth/token")
         .form(&[
             ("grant_type", "authorization_code"),
             ("code", code),
@@ -148,7 +148,7 @@ async fn ckey_for_auth(
     tracing::debug!("requesting user info for {access_token}");
 
     let tgapi_user_response_text = client
-        .get("https://tgstation13.org/phpBB/app.php/tgapi/user/me")
+        .get("https://forums.tgstation13.org/app.php/tgapi/user/me")
         .header("Authorization", format!("Bearer {access_token}"))
         .send()
         .await
